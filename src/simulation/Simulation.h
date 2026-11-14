@@ -1,6 +1,9 @@
 
 #pragma once
+
 #include <array>
+#include <cstddef>
+
 #include "SimulationConfig.h"
 #include "../physics/Physics.h"
 
@@ -33,6 +36,9 @@ public:
     double getSimulationTime() const;
 
 private:
+    // Maximum number of physics updates per frame.
+    static constexpr std::size_t MAX_SUBSTEPS_PER_FRAME = 8;
+
     SimulationConfig config;
 
     Physics physics;

@@ -4,7 +4,36 @@
 #include <cmath>
 #include <stdexcept>
 
-// Рассчитываем ускорение одного тела
+// Check whether a vector contains only finite values
+static bool isValidVector(const Vector2D& vector)
+{
+    return std::isfinite(vector.x) &&
+           std::isfinite(vector.y);
+}
+
+// Validate all bodies
+static void validateBodies(const std::array<Body, 3>& bodies)
+{
+    for (const Body& body : bodies)
+    {
+        if (!std::isfinite(body.mass) || body.mass <= 0.0)
+            throw std::invalid_argument("Invalid mass");
+
+        if (!std::isfinite(body.radius) || body.radius < 0.0)
+            throw std::invalid_argument("Invalid radius");
+
+        if (!isValidVector(body.position))
+            throw std::invalid_argument("Invalid position");
+
+        if (!isValidVector(body.velocity))
+            throw std::invalid_argument("Invalid velocity");
+
+        if (!isValidVector(body.acceleration))
+            throw std::invalid_argument("Invalid acceleration");
+    }
+}
+
+// Calculate acceleration of one body
 Vector2D Physics::calculateAccelerationForBody(
     const Body& body,
     const std::array<Body, 3>& bodies,
@@ -39,14 +68,19 @@ Vector2D Physics::calculateAccelerationForBody(
             acceleration + direction * factor;
     }
 
+    if (!isValidVector(acceleration))
+        throw std::runtime_error("Invalid calculated acceleration");
+
     return acceleration;
 }
 
-// Рассчитываем ускорения всех трёх тел
+// Calculate accelerations of all bodies
 void Physics::calculateAccelerations(
     std::array<Body, 3>& bodies
 ) const
 {
+    validateBodies(bodies);
+
     for (int i = 0; i < 3; ++i)
     {
         bodies[i].acceleration =
@@ -58,7 +92,7 @@ void Physics::calculateAccelerations(
     }
 }
 
-// Обновляем состояние системы методом Velocity Verlet
+// Update system using Velocity Verlet
 void Physics::update(
     std::array<Body, 3>& bodies,
     double deltaTime
@@ -67,19 +101,7 @@ void Physics::update(
     if (!std::isfinite(deltaTime) || deltaTime <= 0.0)
         throw std::invalid_argument("Invalid deltaTime");
 
-    for (const Body& body : bodies)
-    {
-        if (!std::isfinite(body.mass) || body.mass <= 0.0)
-            throw std::invalid_argument("Invalid mass");
-
-        if (!std::isfinite(body.position.x) ||
-            !std::isfinite(body.position.y) ||
-            !std::isfinite(body.velocity.x) ||
-            !std::isfinite(body.velocity.y))
-        {
-            throw std::invalid_argument("Invalid body state");
-        }
-    }
+    validateBodies(bodies);
 
     // 1. Calculate initial accelerations
     calculateAccelerations(bodies);
@@ -99,6 +121,9 @@ void Physics::update(
             body.position +
             body.velocity * deltaTime +
             body.acceleration * (0.5 * deltaTime * deltaTime);
+
+        if (!isValidVector(body.position))
+            throw std::runtime_error("Invalid calculated position");
     }
 
     // 4. Calculate new accelerations
@@ -111,14 +136,19 @@ void Physics::update(
             bodies[i].velocity +
             (oldAccelerations[i] + bodies[i].acceleration)
             * (0.5 * deltaTime);
+
+        if (!isValidVector(bodies[i].velocity))
+            throw std::runtime_error("Invalid calculated velocity");
     }
 }
 
-// Обнаружение столкновений между телами
+// Detect collisions between bodies
 std::vector<Collision> Physics::detectCollisions(
     const std::array<Body, 3>& bodies
 ) const
 {
+    validateBodies(bodies);
+
     std::vector<Collision> collisions;
 
     for (int i = 0; i < 3; ++i)
