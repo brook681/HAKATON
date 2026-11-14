@@ -1,4 +1,3 @@
-
 cmake_minimum_required(VERSION 3.20)
 
 project(ThreeBodySimulation LANGUAGES CXX)
@@ -35,6 +34,7 @@ target_link_libraries(simulation PUBLIC physics)
 # Graphics library
 add_library(graphics
     src/graphics/Graphics.cpp
+    src/graphics/CoordinateSystem.h  # <--- ДОБАВИЛИ СЮДА
 )
 
 target_include_directories(graphics PUBLIC

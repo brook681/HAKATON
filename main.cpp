@@ -83,7 +83,7 @@ int main()
         simulation.update(deltaTime);
 
         window.clear(sf::Color(8, 10, 22));
-        graphics.draw(window, simulation.getBodies());
+        graphics.draw(window, simulation.snapshot());
         window.display();
     }
 
