@@ -1,185 +1,97 @@
-
 #include "Simulation.h"
-
-#include <stdexcept>
+#include <algorithm>
 #include <cmath>
 
-// Check whether a vector contains only finite values
-static bool isValidVector(const Vector2D& vector)
-{
-    return std::isfinite(vector.x) &&
-           std::isfinite(vector.y);
+static bool isValidNumber(double val) {
+    return std::isfinite(val);
 }
 
-// Validate initial body parameters
-static void validateBody(const Body& body)
-{
-    if (!std::isfinite(body.mass) || body.mass <= 0.0)
-        throw std::invalid_argument("Invalid body mass");
-
-    if (!std::isfinite(body.radius) || body.radius < 0.0)
-        throw std::invalid_argument("Invalid body radius");
-
-    if (!isValidVector(body.position))
-        throw std::invalid_argument("Invalid body position");
-
-    if (!isValidVector(body.velocity))
-        throw std::invalid_argument("Invalid body velocity");
-}
-
-// Validate the complete simulation configuration
-static void validateConfig(const SimulationConfig& config)
-{
-    if (!std::isfinite(config.fixedTimeStep) ||
-        config.fixedTimeStep <= 0.0)
-    {
-        throw std::invalid_argument("Invalid fixed time step");
-    }
-
-    if (!std::isfinite(config.timeScale) ||
-        config.timeScale <= 0.0)
-    {
-        throw std::invalid_argument("Invalid time scale");
-    }
-
-    for (const Body& body : config.initialBodies)
-    {
-        validateBody(body);
-    }
-}
-
-// Constructor
 Simulation::Simulation(const SimulationConfig& config)
-    : config(config),
-      bodies(config.initialBodies),
-      timeScale(config.timeScale)
+    : m_config(config), 
+      m_bodies(config.initialBodies),
+      m_timeScale(config.timeScale)
 {
-    validateConfig(config);
+    // 1. Валидация самого шага и масштаба времени
+    if (!isValidNumber(m_config.fixedTimeStep) || m_config.fixedTimeStep <= 0.0)
+        throw std::invalid_argument("Fixed time step must be finite and > 0");
+        
+    if (!isValidNumber(m_timeScale) || m_timeScale <= 0.0)
+        throw std::invalid_argument("Time scale must be finite and > 0");
 
-    for (Body& body : bodies)
-    {
-        body.acceleration = {0.0, 0.0};
+    // 2. Валидация тел (Задача 4 физика - Обработка проблемных ситуаций)
+    for (const auto& body : m_bodies) {
+        if (!isValidNumber(body.mass) || body.mass <= 0.0)
+            throw std::invalid_argument("Mass must be finite and > 0");
+        if (!isValidNumber(body.radius) || body.radius <= 0.0)
+            throw std::invalid_argument("Radius must be finite and > 0");
+        if (!isValidNumber(body.position.x) || !isValidNumber(body.position.y))
+            throw std::invalid_argument("Position must be finite");
+        if (!isValidNumber(body.velocity.x) || !isValidNumber(body.velocity.y))
+            throw std::invalid_argument("Velocity must be finite");
     }
 }
 
-// Start simulation
-void Simulation::start()
-{
-    if (state == SimulationState::Finished)
-        return;
-
-    state = SimulationState::Running;
+void Simulation::start() {
+    if (m_state == SimulationState::Finished) return;
+    m_state = SimulationState::Running;
 }
 
-// Pause simulation
-void Simulation::pause()
-{
-    if (state == SimulationState::Running)
-    {
-        state = SimulationState::Paused;
-    }
+void Simulation::pause() {
+    if (m_state == SimulationState::Running) m_state = SimulationState::Paused;
 }
 
-// Reset simulation
-void Simulation::reset()
-{
-    bodies = config.initialBodies;
-
-    for (Body& body : bodies)
-    {
-        body.acceleration = {0.0, 0.0};
-    }
-
-    simulationTime = 0.0;
-    accumulator = 0.0;
-    timeScale = config.timeScale;
-
-    state = SimulationState::Paused;
+void Simulation::reset() {
+    m_bodies = m_config.initialBodies;
+    m_state = SimulationState::Paused;
+    m_accumulator = 0.0;
+    m_simulationTime = 0.0;
+    m_collisionDetected = false;
+    m_trajectoriesResetRequested = true;
 }
 
-// Change simulation speed
-void Simulation::setTimeScale(double scale)
-{
-    if (!std::isfinite(scale) || scale <= 0.0)
-    {
-        throw std::invalid_argument("Invalid time scale");
-    }
+void Simulation::update(double realDeltaTime) {
+    if (!isValidNumber(realDeltaTime) || realDeltaTime < 0.0)
+        throw std::invalid_argument("Delta time must be finite and >= 0");
 
-    timeScale = scale;
-}
+    if (m_state != SimulationState::Running) return;
 
-// Check simulation state
-bool Simulation::isRunning() const
-{
-    return state == SimulationState::Running;
-}
+    // Защита от больших скачков (перетаскивание окна)
+    realDeltaTime = std::min(realDeltaTime, kMaxFrameTime);
 
-// Get simulation state
-SimulationState Simulation::getState() const
-{
-    return state;
-}
+    m_accumulator += realDeltaTime * m_timeScale;
 
-// Get bodies
-const std::array<Body, 3>& Simulation::getBodies() const
-{
-    return bodies;
-}
+    int stepsThisFrame = 0;
+    constexpr int MAX_STEPS = 8; // Тест №8 требует максимум 8 шагов
 
-// Get simulation time
-double Simulation::getSimulationTime() const
-{
-    return simulationTime;
-}
+    while (m_accumulator >= m_config.fixedTimeStep && stepsThisFrame < MAX_STEPS) {
+        m_physics.update(m_bodies, m_config.fixedTimeStep);
+        m_accumulator -= m_config.fixedTimeStep;
+        m_simulationTime += m_config.fixedTimeStep;
+        stepsThisFrame++;
 
-// Update simulation
-void Simulation::update(double deltaTime)
-{
-    if (!std::isfinite(deltaTime) || deltaTime < 0.0)
-    {
-        throw std::invalid_argument("Invalid deltaTime");
-    }
-
-    if (state != SimulationState::Running)
-        return;
-
-    const double scaledDeltaTime = deltaTime * timeScale;
-
-    if (!std::isfinite(scaledDeltaTime) ||
-        !std::isfinite(accumulator + scaledDeltaTime))
-    {
-        throw std::overflow_error("Simulation time overflow");
-    }
-
-    const double fixedStep = config.fixedTimeStep;
-
-    accumulator += scaledDeltaTime;
-
-    std::size_t substeps = 0;
-
-    while (accumulator >= fixedStep &&
-           substeps < MAX_SUBSTEPS_PER_FRAME)
-    {
-        physics.update(bodies, fixedStep);
-
-        if (!std::isfinite(simulationTime + fixedStep))
-        {
-            throw std::overflow_error("Simulation time overflow");
-        }
-
-        simulationTime += fixedStep;
-        accumulator -= fixedStep;
-
-        ++substeps;
-
-        // Check collisions
-        const auto collisions = physics.detectCollisions(bodies);
-
-        if (!collisions.empty())
-        {
-            state = SimulationState::Finished;
-            accumulator = 0.0;
-            return;
+        if (!m_physics.detectCollisions(m_bodies).empty()) {
+            m_collisionDetected = true;
+            m_state = SimulationState::Finished;
+            break;
         }
     }
+}
+
+void Simulation::setTimeScale(double scale) {
+    if (!isValidNumber(scale) || scale <= 0.0)
+        throw std::invalid_argument("Time scale must be finite and > 0");
+        
+    m_timeScale = std::clamp(scale, kMinTimeScale, kMaxTimeScale);
+}
+
+bool Simulation::isRunning() const { return m_state == SimulationState::Running; }
+SimulationState Simulation::getState() const { return m_state; }
+const std::array<Body, 3>& Simulation::getBodies() const { return m_bodies; }
+double Simulation::getSimulationTime() const { return m_simulationTime; }
+bool Simulation::hasCollision() const { return m_collisionDetected; }
+
+bool Simulation::consumeTrajectoriesResetFlag() {
+    const bool flag = m_trajectoriesResetRequested;
+    m_trajectoriesResetRequested = false;
+    return flag;
 }
