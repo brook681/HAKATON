@@ -183,7 +183,6 @@ int main()
 
         Simulation simulation(config);
         simulation.start();
-
         simulation.update(0.20);
 
         check(
@@ -370,6 +369,30 @@ int main()
                 simulation.update(-0.1);
             }),
             "Rejects negative deltaTime"
+        );
+    }
+
+    // 21. Long-running simulation stability
+    {
+        SimulationConfig config = createTestConfig();
+        config.fixedTimeStep = 0.001;
+
+        Simulation simulation(config);
+        simulation.start();
+
+        constexpr int iterations = 10000;
+        constexpr double deltaTime = 0.001;
+
+        for (int i = 0; i < iterations; ++i)
+        {
+            simulation.update(deltaTime);
+        }
+
+        const double expectedTime = iterations * deltaTime;
+
+        check(
+            std::abs(simulation.getSimulationTime() - expectedTime) < 1e-8,
+            "Long-running simulation time stability"
         );
     }
 

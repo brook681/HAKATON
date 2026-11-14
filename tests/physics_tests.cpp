@@ -1,3 +1,4 @@
+#include "../src/simulation/Simulation.h"
 #include "../src/physics/Physics.h"
 #include "../src/physics/Scenarios.h"
 #include <iostream>
@@ -250,6 +251,77 @@ void testFigureEightEnergy()
 
     std::cout << "[PASS] Figure Eight energy conservation\n";
 }
+
+void testFigureEightEnergyThroughSimulation()
+{
+    constexpr double period = 6.32591398;
+    constexpr int steps = 63260;
+
+    SimulationConfig config;
+    config.initialBodies = Scenarios::createFigureEight();
+    config.fixedTimeStep = period / steps;
+    config.timeScale = 1.0;
+
+    Simulation simulation(config);
+
+    const double initialEnergy =
+        calculateTotalEnergy(simulation.getBodies());
+
+    double maxRelativeError = 0.0;
+
+    simulation.start();
+
+    for (int i = 0; i < steps; ++i)
+    {
+        simulation.update(config.fixedTimeStep);
+
+        if (simulation.getState() != SimulationState::Running)
+        {
+            throw std::runtime_error(
+                "Simulation unexpectedly stopped during Figure Eight test!"
+            );
+        }
+
+        const double currentEnergy =
+            calculateTotalEnergy(simulation.getBodies());
+
+        const double relativeError =
+            std::abs(currentEnergy - initialEnergy) /
+            std::max(std::abs(initialEnergy), 1e-12);
+
+        maxRelativeError =
+            std::max(maxRelativeError, relativeError);
+    }
+
+    const double expectedTime = period;
+    const double actualTime = simulation.getSimulationTime();
+
+    std::cout << "[SIMULATION FIGURE EIGHT] Initial energy: "
+              << initialEnergy << '\n';
+
+    std::cout << "[SIMULATION FIGURE EIGHT] Max relative energy error: "
+              << maxRelativeError << '\n';
+
+    std::cout << "[SIMULATION FIGURE EIGHT] Simulation time: "
+              << actualTime << '\n';
+
+    if (maxRelativeError > 1e-7)
+    {
+        throw std::runtime_error(
+            "Figure Eight Simulation energy conservation failed!"
+        );
+    }
+
+    if (std::abs(actualTime - expectedTime) > 1e-8)
+    {
+        throw std::runtime_error(
+            "Figure Eight Simulation time tracking failed!"
+        );
+    }
+
+    std::cout << "[PASS] Figure Eight energy through Simulation\n";
+}
+
 void testGravity()
 {
     Physics physics;
@@ -367,6 +439,7 @@ int main()
         testFigureEightInitialConditions();
         testFigureEightOrbit();
         testFigureEightEnergy();
+        testFigureEightEnergyThroughSimulation();
 
         testGravity();
         testMomentumConservation();

@@ -1,6 +1,0 @@
-E:/ThreeBodyProject/build/CMakeFiles/physics.dir
-E:/ThreeBodyProject/build/CMakeFiles/simulation.dir
-E:/ThreeBodyProject/build/CMakeFiles/physics_tests.dir
-E:/ThreeBodyProject/build/CMakeFiles/simulation_tests.dir
-E:/ThreeBodyProject/build/CMakeFiles/ALL_BUILD.dir
-E:/ThreeBodyProject/build/CMakeFiles/ZERO_CHECK.dir

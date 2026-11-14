@@ -34,7 +34,10 @@ add_executable(physics_tests
     tests/physics_tests.cpp
 )
 
-target_link_libraries(physics_tests PRIVATE physics)
+target_link_libraries(physics_tests PRIVATE
+    physics
+    simulation
+)
 
 # Simulation tests
 add_executable(simulation_tests
