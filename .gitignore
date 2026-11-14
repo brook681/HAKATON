@@ -1,2 +1,4 @@
 build/
+build-sfml/
 .vs/
+CMakeLists_backup.txt
