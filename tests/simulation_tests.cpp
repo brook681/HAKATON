@@ -5,6 +5,7 @@
 #include <cmath>
 #include <stdexcept>
 #include <limits>
+#include <vector>
 
 int passed = 0;
 int failed = 0;
@@ -42,6 +43,8 @@ SimulationConfig createTestConfig()
 {
     SimulationConfig config;
 
+    config.initialBodies.resize(3);
+
     config.fixedTimeStep = 1.0 / 120.0;
     config.timeScale = 1.0;
 
@@ -67,8 +70,8 @@ SimulationConfig createCollisionConfig()
 {
     SimulationConfig config = createTestConfig();
 
-    config.initialBodies[0].position = {-0.15, 0.0};
-    config.initialBodies[1].position = {0.15, 0.0};
+    config.initialBodies[0].position = {-0.08, 0.0};
+    config.initialBodies[1].position = {0.08, 0.0};
 
     config.initialBodies[0].velocity = {1.0, 0.0};
     config.initialBodies[1].velocity = {-1.0, 0.0};
@@ -208,65 +211,99 @@ int main()
         );
     }
 
-    // 10. Collision finishes simulation
+    // 10. Collision merges bodies
     {
         Simulation simulation(createCollisionConfig());
 
         simulation.start();
-        simulation.update(0.1);
+        simulation.update(0.01);
 
         check(
-            simulation.getState() == SimulationState::Finished,
-            "Collision finishes simulation"
+            simulation.hasCollision() &&
+            simulation.getBodies().size() == 2,
+            "Collision merges two bodies"
         );
     }
 
-    // 11. Finished simulation cannot restart without reset
+    // 11. Simulation continues after collision
     {
         Simulation simulation(createCollisionConfig());
 
         simulation.start();
-        simulation.update(0.1);
-        simulation.start();
+        simulation.update(0.01);
+
+        const bool runningAfterCollision = simulation.isRunning();
+
+        simulation.update(0.01);
 
         check(
-            simulation.getState() == SimulationState::Finished,
-            "Finished simulation cannot restart without reset"
+            runningAfterCollision &&
+            simulation.isRunning(),
+            "Simulation continues after collision"
         );
     }
 
-    // 12. Reset after collision allows restarting
+    // 12. Merged body conserves mass
+    {
+        Simulation simulation(createCollisionConfig());
+
+        simulation.start();
+        simulation.update(0.01);
+
+        const auto& bodies = simulation.getBodies();
+
+        check(
+            bodies.size() == 2 &&
+            std::abs(bodies[0].mass - 2.0) < 1e-9,
+            "Merged body conserves mass"
+        );
+    }
+
+    // 13. Merged body conserves momentum
+    {
+        Simulation simulation(createCollisionConfig());
+
+        simulation.start();
+        simulation.update(0.01);
+
+        const auto& bodies = simulation.getBodies();
+
+        double totalMomentumX = 0.0;
+        double totalMomentumY = 0.0;
+
+        for (const Body& body : bodies)
+        {
+            totalMomentumX += body.mass * body.velocity.x;
+            totalMomentumY += body.mass * body.velocity.y;
+        }
+
+        check(
+            std::abs(totalMomentumX) < 1e-7 &&
+            std::abs(totalMomentumY) < 1e-7,
+            "Merged bodies conserve total momentum"
+        );
+    }
+
+    // 14. Reset after collision
     {
         SimulationConfig config = createCollisionConfig();
         Simulation simulation(config);
 
         simulation.start();
-        simulation.update(0.1);
-
-        const bool finishedCorrectly =
-            simulation.getState() == SimulationState::Finished;
+        simulation.update(0.01);
 
         simulation.reset();
 
-        const bool resetCorrectly =
+        check(
             simulation.getState() == SimulationState::Paused &&
             simulation.getSimulationTime() == 0.0 &&
-            simulation.getBodies()[0].position.x ==
-                config.initialBodies[0].position.x &&
-            simulation.getBodies()[1].position.x ==
-                config.initialBodies[1].position.x;
-
-        simulation.start();
-
-        check(
-            finishedCorrectly &&
-            resetCorrectly &&
-            simulation.isRunning(),
-            "Reset allows restarting finished simulation"
+            simulation.getBodies().size() == 3 &&
+            !simulation.hasCollision(),
+            "Reset restores bodies after collision"
         );
     }
 
-    // 13. Reject zero fixed timestep
+    // 15. Reject zero fixed timestep
     {
         SimulationConfig config = createTestConfig();
         config.fixedTimeStep = 0.0;
@@ -279,7 +316,7 @@ int main()
         );
     }
 
-    // 14. Reject negative time scale in config
+    // 16. Reject negative time scale in config
     {
         SimulationConfig config = createTestConfig();
         config.timeScale = -1.0;
@@ -292,7 +329,7 @@ int main()
         );
     }
 
-    // 15. Reject zero mass
+    // 17. Reject zero mass
     {
         SimulationConfig config = createTestConfig();
         config.initialBodies[0].mass = 0.0;
@@ -305,7 +342,7 @@ int main()
         );
     }
 
-    // 16. Reject negative radius
+    // 18. Reject negative radius
     {
         SimulationConfig config = createTestConfig();
         config.initialBodies[0].radius = -1.0;
@@ -318,7 +355,7 @@ int main()
         );
     }
 
-    // 17. Reject infinite position
+    // 19. Reject infinite position
     {
         SimulationConfig config = createTestConfig();
 
@@ -333,7 +370,7 @@ int main()
         );
     }
 
-    // 18. Reject NaN velocity
+    // 20. Reject NaN velocity
     {
         SimulationConfig config = createTestConfig();
 
@@ -348,7 +385,7 @@ int main()
         );
     }
 
-    // 19. Reject zero time scale
+    // 21. Reject zero time scale
     {
         Simulation simulation(createTestConfig());
 
@@ -360,7 +397,7 @@ int main()
         );
     }
 
-    // 20. Reject negative deltaTime
+    // 22. Reject negative deltaTime
     {
         Simulation simulation(createTestConfig());
 
@@ -372,7 +409,7 @@ int main()
         );
     }
 
-    // 21. Long-running simulation stability
+    // 23. Long-running simulation stability
     {
         SimulationConfig config = createTestConfig();
         config.fixedTimeStep = 0.001;

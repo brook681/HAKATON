@@ -12,7 +12,7 @@ static bool isValidVector(const Vector2D& vector)
 }
 
 // Validate all bodies
-static void validateBodies(const std::array<Body, 3>& bodies)
+static void validateBodies(const std::vector<Body>& bodies)
 {
     for (const Body& body : bodies)
     {
@@ -36,13 +36,13 @@ static void validateBodies(const std::array<Body, 3>& bodies)
 // Calculate acceleration of one body
 Vector2D Physics::calculateAccelerationForBody(
     const Body& body,
-    const std::array<Body, 3>& bodies,
+    const std::vector<Body>& bodies,
     int bodyIndex
 ) const
 {
     Vector2D acceleration{0.0, 0.0};
 
-    for (int j = 0; j < 3; ++j)
+    for (int j = 0; j < static_cast<int>(bodies.size()); ++j)
     {
         if (j == bodyIndex)
             continue;
@@ -76,12 +76,12 @@ Vector2D Physics::calculateAccelerationForBody(
 
 // Calculate accelerations of all bodies
 void Physics::calculateAccelerations(
-    std::array<Body, 3>& bodies
+    std::vector<Body>& bodies
 ) const
 {
     validateBodies(bodies);
 
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < static_cast<int>(bodies.size()); ++i)
     {
         bodies[i].acceleration =
             calculateAccelerationForBody(
@@ -94,7 +94,7 @@ void Physics::calculateAccelerations(
 
 // Update system using Velocity Verlet
 void Physics::update(
-    std::array<Body, 3>& bodies,
+    std::vector<Body>& bodies,
     double deltaTime
 ) const
 {
@@ -103,18 +103,13 @@ void Physics::update(
 
     validateBodies(bodies);
 
-    // 1. Calculate initial accelerations
     calculateAccelerations(bodies);
 
-    // 2. Save initial accelerations
-    std::array<Vector2D, 3> oldAccelerations;
+    std::vector<Vector2D> oldAccelerations;
 
-    for (int i = 0; i < 3; ++i)
-    {
-        oldAccelerations[i] = bodies[i].acceleration;
-    }
+    for (const Body& body : bodies)
+        oldAccelerations.push_back(body.acceleration);
 
-    // 3. Update positions
     for (Body& body : bodies)
     {
         body.position =
@@ -126,11 +121,9 @@ void Physics::update(
             throw std::runtime_error("Invalid calculated position");
     }
 
-    // 4. Calculate new accelerations
     calculateAccelerations(bodies);
 
-    // 5. Update velocities
-    for (int i = 0; i < 3; ++i)
+    for (std::size_t i = 0; i < bodies.size(); ++i)
     {
         bodies[i].velocity =
             bodies[i].velocity +
@@ -144,16 +137,16 @@ void Physics::update(
 
 // Detect collisions between bodies
 std::vector<Collision> Physics::detectCollisions(
-    const std::array<Body, 3>& bodies
+    const std::vector<Body>& bodies
 ) const
 {
     validateBodies(bodies);
 
     std::vector<Collision> collisions;
 
-    for (int i = 0; i < 3; ++i)
+    for (int i = 0; i < static_cast<int>(bodies.size()); ++i)
     {
-        for (int j = i + 1; j < 3; ++j)
+        for (int j = i + 1; j < static_cast<int>(bodies.size()); ++j)
         {
             Vector2D difference =
                 bodies[j].position - bodies[i].position;
@@ -163,9 +156,7 @@ std::vector<Collision> Physics::detectCollisions(
             double minimumDistance =
                 bodies[i].radius + bodies[j].radius;
 
-            const double tolerance = 1e-12;
-
-            if (distance <= minimumDistance + tolerance)
+            if (distance <= minimumDistance + 1e-12)
             {
                 collisions.push_back({
                     i,
@@ -177,4 +168,52 @@ std::vector<Collision> Physics::detectCollisions(
     }
 
     return collisions;
+}
+
+// Merge colliding bodies
+void Physics::mergeCollisions(
+    std::vector<Body>& bodies
+) const
+{
+    while (true)
+    {
+        const std::vector<Collision> collisions =
+            detectCollisions(bodies);
+
+        if (collisions.empty())
+            break;
+
+        const int first = collisions[0].firstBody;
+        const int second = collisions[0].secondBody;
+
+        Body merged{};
+
+        const Body& a = bodies[first];
+        const Body& b = bodies[second];
+
+        const double totalMass = a.mass + b.mass;
+
+        // Conservation of mass
+        merged.mass = totalMass;
+
+        // Center of mass
+        merged.position =
+            (a.position * a.mass + b.position * b.mass)
+            * (1.0 / totalMass);
+
+        // Conservation of momentum
+        merged.velocity =
+            (a.velocity * a.mass + b.velocity * b.mass)
+            * (1.0 / totalMass);
+
+        // Preserve total 2D area
+        merged.radius =
+            std::sqrt(a.radius * a.radius + b.radius * b.radius);
+
+        merged.acceleration = {0.0, 0.0};
+
+        // Replace first body and remove second
+        bodies[first] = merged;
+        bodies.erase(bodies.begin() + second);
+    }
 }

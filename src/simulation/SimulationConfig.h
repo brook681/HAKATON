@@ -1,13 +1,14 @@
+
 #pragma once
 
 #include "../physics/Body.h"
 
-#include <array>
+#include <vector>
 
 struct SimulationConfig
 {
-    // Начальные параметры трёх тел
-    std::array<Body, 3> initialBodies{};
+    // Начальные параметры тел
+    std::vector<Body> initialBodies{};
 
     // Фиксированный шаг физического времени
     double fixedTimeStep = 1.0 / 120.0;

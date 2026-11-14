@@ -1,16 +1,16 @@
 #pragma once
 
 #include <SFML/Graphics.hpp>
-#include <array>
+#include <vector>
 #include <deque>
 
 #include "physics/Body.h"
-#include "graphics/CoordinateSystem.h" // <--- Подключаем нашу систему
+#include "graphics/CoordinateSystem.h"
 
 class Graphics
 {
 private:
-    std::array<std::deque<sf::Vector2f>, 3> trails;
+    std::vector<std::deque<sf::Vector2f>> trails;
     CoordinateSystem m_coords;
 
 public:
@@ -18,7 +18,7 @@ public:
 
     void draw(
         sf::RenderWindow& window,
-        const std::array<Body, 3>& bodies
+        const std::vector<Body>& bodies
     );
 
     void resetTrails()
@@ -29,6 +29,8 @@ public:
         }
     }
 
-    // Дадим графисту доступ к камере, чтобы он мог делать зум или двигать её
-    CoordinateSystem& getCoordinates() { return m_coords; }
+    CoordinateSystem& getCoordinates()
+    {
+        return m_coords;
+    }
 };

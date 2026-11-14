@@ -1,13 +1,16 @@
+
 #include "../src/simulation/Simulation.h"
 #include "../src/physics/Physics.h"
 #include "../src/physics/Scenarios.h"
+
 #include <iostream>
 #include <cmath>
-#include <array>
+#include <vector>
 #include <stdexcept>
 #include <algorithm>
+#include <cstddef>
 
-using Bodies = std::array<Body, 3>;
+using Bodies = std::vector<Body>;
 
 double calculateTotalEnergy(const Bodies& bodies)
 {
@@ -20,9 +23,9 @@ double calculateTotalEnergy(const Bodies& bodies)
             0.5 * body.mass * body.velocity.lengthSquared();
     }
 
-    for (int i = 0; i < 3; ++i)
+    for (std::size_t i = 0; i < bodies.size(); ++i)
     {
-        for (int j = i + 1; j < 3; ++j)
+        for (std::size_t j = i + 1; j < bodies.size(); ++j)
         {
             Vector2D difference =
                 bodies[j].position - bodies[i].position;
@@ -48,8 +51,7 @@ Vector2D calculateTotalMomentum(const Bodies& bodies)
 
     for (const Body& body : bodies)
     {
-        momentum = momentum +
-            body.velocity * body.mass;
+        momentum = momentum + body.velocity * body.mass;
     }
 
     return momentum;
@@ -59,7 +61,7 @@ void testCollisionDetection()
 {
     Physics physics;
 
-    Bodies bodies{};
+    Bodies bodies(3);
 
     bodies[0].position = {0.0, 0.0};
     bodies[0].radius = 1.0;
@@ -86,7 +88,7 @@ void testNoCollision()
 {
     Physics physics;
 
-    Bodies bodies{};
+    Bodies bodies(3);
 
     bodies[0].position = {0.0, 0.0};
     bodies[1].position = {5.0, 0.0};
@@ -104,7 +106,7 @@ void testTouchingBodies()
 {
     Physics physics;
 
-    Bodies bodies{};
+    Bodies bodies(3);
 
     bodies[0].position = {0.0, 0.0};
     bodies[0].radius = 1.0;
@@ -172,7 +174,7 @@ void testFigureEightOrbit()
     double maxPositionError = 0.0;
     double maxVelocityError = 0.0;
 
-    for (int i = 0; i < 3; ++i)
+    for (std::size_t i = 0; i < bodies.size(); ++i)
     {
         double positionError =
             (bodies[i].position -
@@ -198,9 +200,7 @@ void testFigureEightOrbit()
     if (maxPositionError > 1e-5 ||
         maxVelocityError > 1e-5)
     {
-        throw std::runtime_error(
-            "Figure Eight orbit test failed!"
-        );
+        throw std::runtime_error("Figure Eight orbit test failed!");
     }
 
     std::cout << "[PASS] Figure Eight orbit\n";
@@ -327,7 +327,7 @@ void testGravity()
 {
     Physics physics;
 
-    Bodies bodies{};
+    Bodies bodies(3);
 
     bodies[0].mass = 1.0;
     bodies[0].position = {-1.0, 0.0};
@@ -353,7 +353,7 @@ void testMomentumConservation()
 {
     Physics physics;
 
-    Bodies bodies{};
+    Bodies bodies(3);
 
     bodies[0].mass = 2.0;
     bodies[0].position = {-1.0, 0.0};
@@ -392,7 +392,7 @@ void testEnergyConservation()
 {
     Physics physics;
 
-    Bodies bodies{};
+    Bodies bodies(3);
 
     bodies[0].mass = 1.0;
     bodies[0].position = {-1.0, 0.0};
@@ -423,7 +423,6 @@ void testEnergyConservation()
         throw std::runtime_error("Energy conservation failed!");
 
     std::cout << "[PASS] Energy conservation\n";
-
     std::cout << "Initial energy: " << initialEnergy << '\n';
     std::cout << "Final energy: " << finalEnergy << '\n';
     std::cout << "Relative error: " << relativeError << '\n';
@@ -433,13 +432,19 @@ void testEditBodyPosition()
 {
     SimulationConfig config;
     config.initialBodies = Scenarios::createFigureEight();
+
     Simulation simulation(config);
 
     const Vector2D newPos{0.5, -0.25};
-    if (!simulation.setBodyPosition(0, newPos))
-        throw std::runtime_error("setBodyPosition returned false for valid id");
 
-    const Vector2D actual = simulation.getBodies()[0].position;
+    if (!simulation.setBodyPosition(0, newPos))
+        throw std::runtime_error(
+            "setBodyPosition returned false for valid id"
+        );
+
+    const Vector2D actual =
+        simulation.getBodies()[0].position;
+
     if ((actual - newPos).length() > 1e-12)
         throw std::runtime_error("Position was not updated");
 
@@ -450,14 +455,18 @@ void testEditInvalidId()
 {
     SimulationConfig config;
     config.initialBodies = Scenarios::createFigureEight();
+
     Simulation simulation(config);
 
     if (simulation.setBodyPosition(999, {0.0, 0.0}))
         throw std::runtime_error("setBodyPosition accepted invalid id");
+
     if (simulation.setBodyVelocity(999, {0.0, 0.0}))
         throw std::runtime_error("setBodyVelocity accepted invalid id");
+
     if (simulation.setBodyMass(999, 1.0))
         throw std::runtime_error("setBodyMass accepted invalid id");
+
     if (simulation.setBodyRadius(999, 0.1))
         throw std::runtime_error("setBodyRadius accepted invalid id");
 
@@ -468,13 +477,23 @@ void testEditInvalidData()
 {
     SimulationConfig config;
     config.initialBodies = Scenarios::createFigureEight();
+
     Simulation simulation(config);
 
-    const double oldMass = simulation.getBodies()[0].mass;
+    const double oldMass =
+        simulation.getBodies()[0].mass;
 
     bool caught = false;
-    try { simulation.setBodyMass(0, 0.0); }
-    catch (const std::invalid_argument&) { caught = true; }
+
+    try
+    {
+        simulation.setBodyMass(0, 0.0);
+    }
+    catch (const std::invalid_argument&)
+    {
+        caught = true;
+    }
+
     if (!caught)
         throw std::runtime_error("Zero mass was not rejected");
 
@@ -482,14 +501,30 @@ void testEditInvalidData()
         throw std::runtime_error("Body mutated after rejected edit");
 
     caught = false;
-    try { simulation.setBodyRadius(1, -0.5); }
-    catch (const std::invalid_argument&) { caught = true; }
+
+    try
+    {
+        simulation.setBodyRadius(1, -0.5);
+    }
+    catch (const std::invalid_argument&)
+    {
+        caught = true;
+    }
+
     if (!caught)
         throw std::runtime_error("Negative radius was not rejected");
 
     caught = false;
-    try { simulation.setBodyPosition(2, {std::nan(""), 0.0}); }
-    catch (const std::invalid_argument&) { caught = true; }
+
+    try
+    {
+        simulation.setBodyPosition(2, {std::nan(""), 0.0});
+    }
+    catch (const std::invalid_argument&)
+    {
+        caught = true;
+    }
+
     if (!caught)
         throw std::runtime_error("NaN position was not rejected");
 
@@ -501,59 +536,91 @@ void testEditAffectsDynamics()
     SimulationConfig config;
     config.initialBodies = Scenarios::createFigureEight();
     config.fixedTimeStep = 1e-4;
+
     Simulation simulation(config);
 
-    // 1. Отодвигаем тела, чтобы они не столкнулись (проверяем только кинематику)
     simulation.setBodyPosition(0, {0.0, 0.0});
     simulation.setBodyPosition(1, {100.0, 0.0});
     simulation.setBodyPosition(2, {200.0, 0.0});
 
     simulation.start();
 
-    // 2. Задаем скорость
     simulation.setBodyVelocity(0, {50.0, 0.0});
 
-    // 3. Прокручиваем 10 шагов (1e-3 секунды итого)
     for (int i = 0; i < 10; ++i)
         simulation.update(config.fixedTimeStep);
 
-    // 4. Проверяем, что позиция изменилась вправо (v * t = 50 * 1e-3 = 0.05)
-    // Изначально x=0.0, значит должно стать ~0.05
-    double currentX = simulation.getBodies()[0].position.x;
-    
-    if (currentX <= 0.01) // Если сдвинулось меньше чем на 1 см
-        throw std::runtime_error("Velocity edit did not affect dynamics");
+    double currentX =
+        simulation.getBodies()[0].position.x;
+
+    if (currentX <= 0.01)
+        throw std::runtime_error(
+            "Velocity edit did not affect dynamics"
+        );
 
     std::cout << "[PASS] Edit affects dynamics\n";
 }
 
-void testEditFromFinishedGoesToPaused()
+void testCollisionMerging()
 {
     SimulationConfig config;
-    config.initialBodies[0].position = {0.0, 0.0};
-    config.initialBodies[0].radius   = 1.0;
-    config.initialBodies[1].position = {1.5, 0.0};
-    config.initialBodies[1].radius   = 1.0;
-    config.initialBodies[2].position = {10.0, 0.0};
+    config.initialBodies.resize(3);
     config.fixedTimeStep = 1e-3;
 
+    config.initialBodies[0].mass = 2.0;
+    config.initialBodies[0].position = {0.0, 0.0};
+    config.initialBodies[0].velocity = {1.0, 0.0};
+    config.initialBodies[0].radius = 1.0;
+
+    config.initialBodies[1].mass = 3.0;
+    config.initialBodies[1].position = {1.5, 0.0};
+    config.initialBodies[1].velocity = {-1.0, 0.0};
+    config.initialBodies[1].radius = 1.0;
+
+    config.initialBodies[2].mass = 1.0;
+    config.initialBodies[2].position = {10.0, 0.0};
+    config.initialBodies[2].velocity = {0.0, 0.0};
+    config.initialBodies[2].radius = 1.0;
+
     Simulation simulation(config);
+
+    const Vector2D initialMomentum =
+        calculateTotalMomentum(simulation.getBodies());
+
     simulation.start();
     simulation.update(config.fixedTimeStep);
 
-    if (simulation.getState() != SimulationState::Finished)
-        throw std::runtime_error("Expected Finished state after collision");
+    const auto& bodies = simulation.getBodies();
 
-    simulation.setBodyPosition(1, {5.0, 0.0});
+    if (bodies.size() != 2)
+        throw std::runtime_error(
+            "Bodies were not merged after collision!"
+        );
 
-    if (simulation.getState() != SimulationState::Paused)
-        throw std::runtime_error("Finished -> Paused transition failed on edit");
+    if (std::abs(bodies[0].mass - 5.0) > 1e-10)
+        throw std::runtime_error(
+            "Merged body has incorrect mass!"
+        );
 
-    simulation.start();
+    const Vector2D finalMomentum =
+        calculateTotalMomentum(bodies);
+
+    if ((finalMomentum - initialMomentum).length() > 1e-8)
+        throw std::runtime_error(
+            "Momentum was not conserved during merging!"
+        );
+
     if (simulation.getState() != SimulationState::Running)
-        throw std::runtime_error("Start after edit failed");
+        throw std::runtime_error(
+            "Simulation stopped after collision!"
+        );
 
-    std::cout << "[PASS] Edit in Finished -> Paused -> Running\n";
+    if (!simulation.hasCollision())
+        throw std::runtime_error(
+            "Collision flag was not set!"
+        );
+
+    std::cout << "[PASS] Collision merging\n";
 }
 
 int main()
@@ -577,7 +644,8 @@ int main()
         testEditInvalidId();
         testEditInvalidData();
         testEditAffectsDynamics();
-        testEditFromFinishedGoesToPaused();
+
+        testCollisionMerging();
 
         std::cout << "\nAll physics tests passed!\n";
     }

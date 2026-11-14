@@ -1,10 +1,13 @@
+
 #pragma once
 
 #include "SimulationConfig.h"
 #include "Body.h"
 #include "Physics.h"
-#include <array>
+
+#include <vector>
 #include <stdexcept>
+#include <cstddef>
 
 enum class SimulationState
 {
@@ -30,16 +33,14 @@ public:
     bool isRunning() const;
     SimulationState getState() const;
 
-    const std::array<Body, 3>& getBodies() const;
-    
-    std::array<Body, 3> snapshot() const;
+    const std::vector<Body>& getBodies() const;
+
+    std::vector<Body> snapshot() const;
 
     double getSimulationTime() const;
     bool hasCollision() const;
     bool consumeTrajectoriesResetFlag();
 
-    // Возвращают false, если id невалиден.
-    // Бросают std::invalid_argument, если данные невалидны.
     bool setBodyPosition(BodyId id, const Vector2D& position);
     bool setBodyVelocity(BodyId id, const Vector2D& velocity);
     bool setBodyMass(BodyId id, double mass);
@@ -47,7 +48,7 @@ public:
 
 private:
     SimulationConfig m_config;
-    std::array<Body, 3> m_bodies;
+    std::vector<Body> m_bodies;
 
     Physics m_physics;
 

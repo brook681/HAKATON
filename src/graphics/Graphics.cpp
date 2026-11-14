@@ -1,22 +1,35 @@
+
 #include "graphics/Graphics.h"
+
+#include <cstdint>
 
 Graphics::Graphics()
 {
-    // Инициализируем камеру: 
-    // scale = 100 (как было у тебя), screenCenter = {500, 350} (для окна 1000x700)
-    // worldCenter = {0, 0}
-    m_coords = CoordinateSystem({0.0, 0.0}, 100.0, {500.0, 350.0});
+    m_coords = CoordinateSystem(
+        {0.0, 0.0},
+        100.0,
+        {500.0, 350.0}
+    );
 }
 
 void Graphics::draw(
     sf::RenderWindow& window,
-    const std::array<Body, 3>& bodies
+    const std::vector<Body>& bodies
 )
 {
     auto size = window.getSize();
-    
-    // Если окно изменило размер — обновляем центр экрана в системе координат
-    m_coords.setScreenCenter({size.x / 2.0, size.y / 2.0});
+
+    m_coords.setScreenCenter({
+        size.x / 2.0,
+        size.y / 2.0
+    });
+
+    // If the number of bodies changes, reset all trails
+    if (trails.size() != bodies.size())
+    {
+        trails.clear();
+        trails.resize(bodies.size());
+    }
 
     const sf::Color colors[3] = {
         sf::Color(255, 90, 90),
@@ -24,32 +37,39 @@ void Graphics::draw(
         sf::Color(255, 210, 70)
     };
 
-    for (int i = 0; i < 3; i++)
+    for (std::size_t i = 0; i < bodies.size(); ++i)
     {
-        // Переводим физическую позицию в пиксели экрана
-        Vector2D screenPos = m_coords.toScreen(bodies[i].position);
+        const sf::Color& color = colors[i % 3];
+
+        Vector2D screenPos =
+            m_coords.toScreen(bodies[i].position);
+
         float x = static_cast<float>(screenPos.x);
         float y = static_cast<float>(screenPos.y);
 
-        // Записываем точку в траекторию
+        // Record trajectory
         trails[i].push_back({x, y});
 
         if (trails[i].size() > 250)
             trails[i].pop_front();
 
-        // Рисуем траекторию
+        // Draw trajectory
         int index = 0;
+
         for (const auto& point : trails[i])
         {
-            float alpha = 30.f + 180.f * index / trails[i].size();
+            float alpha =
+                30.f + 180.f * index / trails[i].size();
 
             sf::CircleShape dot(2.f);
+
             dot.setOrigin({2.f, 2.f});
             dot.setPosition(point);
+
             dot.setFillColor(sf::Color(
-                colors[i].r,
-                colors[i].g,
-                colors[i].b,
+                color.r,
+                color.g,
+                color.b,
                 static_cast<std::uint8_t>(alpha)
             ));
 
@@ -57,16 +77,19 @@ void Graphics::draw(
             index++;
         }
 
-        // Рисуем тело (радиус берем из физики и умножаем на масштаб камеры)
-        float screenRadius = static_cast<float>(bodies[i].radius * m_coords.getScale());
-        
-        // Защита от слишком маленьких или слишком больших кругов
-        if (screenRadius < 2.f) screenRadius = 2.f;
+        // Draw body
+        float screenRadius = static_cast<float>(
+            bodies[i].radius * m_coords.getScale()
+        );
+
+        if (screenRadius < 2.f)
+            screenRadius = 2.f;
 
         sf::CircleShape bodyShape(screenRadius);
+
         bodyShape.setOrigin({screenRadius, screenRadius});
         bodyShape.setPosition({x, y});
-        bodyShape.setFillColor(colors[i]);
+        bodyShape.setFillColor(color);
 
         window.draw(bodyShape);
     }
