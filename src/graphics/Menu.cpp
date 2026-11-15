@@ -4,7 +4,7 @@
 #include <cstdio>
 
 Menu::Menu() {
-    if (!m_font.openFromFile("assets/fonts/arial.ttf")) {
+    if (!m_font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
         std::cerr << "Warning: Could not load font for Menu!\n";
     } else {
         m_fontLoaded = true;
@@ -17,17 +17,24 @@ bool Menu::drawButton(sf::RenderWindow& window, const std::string& text, float y
     sf::RectangleShape button({width, height});
     button.setOrigin({width / 2.f, height / 2.f});
     
-    // Адаптация под полноэкранный режим: центрируем по вертикали,
-    // отталкиваясь от базового разрешения 700px
     float yOffset = (window.getSize().y - 700.f) / 2.f;
-    
     button.setPosition({window.getSize().x / 2.f, yPos + yOffset});
-    button.setFillColor(sf::Color(40, 45, 70));
+    
+    // Стильный "стеклянный" фон (полупрозрачный черный)
+    button.setFillColor(sf::Color(15, 18, 25, 200));
     button.setOutlineThickness(2.f);
-    button.setOutlineColor(sf::Color(100, 120, 200));
+    
+    // Нежно-сиреневая обводка
+    button.setOutlineColor(sf::Color(200, 160, 255));
 
     bool hovered = button.getGlobalBounds().contains(mousePos);
-    if (hovered) button.setFillColor(sf::Color(60, 70, 110));
+    if (hovered) {
+        // При наведении фон становится чуть светлее, а обводка ярче
+        button.setFillColor(sf::Color(35, 25, 50, 220)); // Легкий фиолетовый оттенок фона
+        button.setOutlineColor(sf::Color(230, 200, 255));
+        button.setOutlineThickness(3.f); // Обводка чуть толще
+    }
+    
     window.draw(button);
 
     if (m_fontLoaded) {
@@ -36,6 +43,10 @@ bool Menu::drawButton(sf::RenderWindow& window, const std::string& text, float y
         sf::FloatRect textBounds = label.getLocalBounds();
         label.setOrigin({textBounds.position.x + textBounds.size.x / 2.f, textBounds.position.y + textBounds.size.y / 2.f});
         label.setPosition(button.getPosition());
+        
+        // Текст тоже немного светится при наведении
+        if (hovered) label.setFillColor(sf::Color(240, 220, 255));
+        
         window.draw(label);
     }
 
@@ -82,10 +93,8 @@ void Menu::removeLastChar() {
 void Menu::moveFocus(int dx, int dy) {
     int row = m_activeField / 5;
     int col = m_activeField % 5;
-
     row = std::clamp(row + dy, 0, 2);
     col = std::clamp(col + dx, 0, 4);
-
     m_activeField = row * 5 + col;
 }
 
@@ -111,11 +120,11 @@ void Menu::drawCustomInputForm(sf::RenderWindow& window) {
     hint.setPosition({window.getSize().x / 2.f, startY - 90.f});
     window.draw(hint);
 
-    // Подписи для столбцов (параметров)
     const char* paramNames[] = {"Mass", "Pos X", "Pos Y", "Vel X", "Vel Y"};
     for (int p = 0; p < 5; ++p) {
         sf::Text colLabel(m_font, paramNames[p], 18);
-        colLabel.setFillColor(sf::Color(100, 200, 255));
+        // Сиреневые подписи столбцов
+        colLabel.setFillColor(sf::Color(200, 160, 255));
         colLabel.setPosition({startX + p * 170.f, startY - 30.f});
         window.draw(colLabel);
     }
@@ -140,7 +149,9 @@ void Menu::drawCustomInputForm(sf::RenderWindow& window) {
         field.setPosition({x, y});
         field.setFillColor(sf::Color(30, 30, 40));
         field.setOutlineThickness(2.f);
-        field.setOutlineColor(i == m_activeField ? sf::Color(100, 200, 255) : sf::Color(100, 100, 100));
+        
+        // Активное поле подсвечиваем сиреневым
+        field.setOutlineColor(i == m_activeField ? sf::Color(200, 160, 255) : sf::Color(100, 100, 100));
 
         if (field.getGlobalBounds().contains(mousePos) && sf::Mouse::isButtonPressed(sf::Mouse::Button::Left)) {
             m_activeField = i;
@@ -153,7 +164,6 @@ void Menu::drawCustomInputForm(sf::RenderWindow& window) {
         window.draw(value);
     }
 
-    // Подсказки по значениям (внизу, под таблицей)
     sf::Text tips(m_font, 
         "Tips: Mass ~ 1.0 (avoid 0 or huge numbers)\n"
         "Pos X/Y: -3.0 to 3.0 (to stay on screen)\n"
@@ -162,7 +172,6 @@ void Menu::drawCustomInputForm(sf::RenderWindow& window) {
     tips.setPosition({startX - 40.f, startY + 260.f});
     window.draw(tips);
 
-    // Отрисовка ошибки
     if (!m_errorMessage.empty()) {
         sf::Text errorText(m_font, m_errorMessage, 20);
         sf::FloatRect errBounds = errorText.getLocalBounds();
@@ -230,7 +239,8 @@ void Menu::drawHUD(sf::RenderWindow& window, double timeScale, double simTime, b
     hudBg.setPosition({10.f, 10.f});
     hudBg.setFillColor(sf::Color(0, 0, 0, 150));
     hudBg.setOutlineThickness(1.f);
-    hudBg.setOutlineColor(sf::Color(100, 100, 100));
+    // Сиреневая обводка HUD
+    hudBg.setOutlineColor(sf::Color(200, 160, 255));
     window.draw(hudBg);
 
     sf::Text timeText(m_font, "Sim Time: " + std::to_string(simTime).substr(0, 5) + " s", 18);
@@ -252,14 +262,15 @@ void Menu::drawHUD(sf::RenderWindow& window, double timeScale, double simTime, b
     window.draw(helpText);
 }
 
-void Menu::drawEditPanel(sf::RenderWindow& window, int bodyIndex, int paramIndex, const Body& currentBody) {
+void Menu::drawEditPanel(sf::RenderWindow& window, int bodyIndex, int paramIndex, const Body& currentBody, int totalBodies) {
     if (!m_fontLoaded) return;
 
     sf::RectangleShape panel({350.f, 450.f});
     panel.setPosition({window.getSize().x - 370.f, 20.f});
     panel.setFillColor(sf::Color(0, 0, 0, 200));
     panel.setOutlineThickness(2.f);
-    panel.setOutlineColor(sf::Color(100, 200, 255));
+    // Сиреневая обводка панели
+    panel.setOutlineColor(sf::Color(200, 160, 255));
     window.draw(panel);
 
     sf::Text title(m_font, "EDIT BODY MODE", 22);
@@ -267,37 +278,39 @@ void Menu::drawEditPanel(sf::RenderWindow& window, int bodyIndex, int paramIndex
     title.setFillColor(sf::Color(255, 200, 100));
     window.draw(title);
 
-    // Выбор тела
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < totalBodies; ++i) {
         sf::Text bodyText(m_font, "Body " + std::to_string(i + 1), 20);
         bodyText.setPosition({window.getSize().x - 350.f, 80.f + i * 40.f});
-        bodyText.setFillColor(i == bodyIndex ? sf::Color(100, 255, 100) : sf::Color::White);
+        // Активное тело тоже подсвечиваем сиреневым
+        bodyText.setFillColor(i == bodyIndex ? sf::Color(200, 160, 255) : sf::Color::White);
         window.draw(bodyText);
     }
 
-    // Параметры и их значения
-    const char* params[] = {"Mass", "Pos X", "Pos Y", "Vel X", "Vel Y", "Radius"};
-    double values[] = {
-        currentBody.mass,
-        currentBody.position.x,
-        currentBody.position.y,
-        currentBody.velocity.x,
-        currentBody.velocity.y,
-        currentBody.radius
-    };
+    if (bodyIndex < totalBodies) {
+        const char* params[] = {"Mass", "Pos X", "Pos Y", "Vel X", "Vel Y", "Radius"};
+        double values[] = {
+            currentBody.mass,
+            currentBody.position.x,
+            currentBody.position.y,
+            currentBody.velocity.x,
+            currentBody.velocity.y,
+            currentBody.radius
+        };
 
-    for (int i = 0; i < 6; ++i) {
-        sf::Text paramText(m_font, std::string(params[i]), 20);
-        paramText.setPosition({window.getSize().x - 350.f, 200.f + i * 35.f});
-        paramText.setFillColor(i == paramIndex ? sf::Color(100, 255, 100) : sf::Color(200, 200, 200));
-        window.draw(paramText);
+        for (int i = 0; i < 6; ++i) {
+            sf::Text paramText(m_font, std::string(params[i]), 20);
+            paramText.setPosition({window.getSize().x - 350.f, 200.f + i * 35.f});
+            // Активный параметр подсвечиваем сиреневым
+            paramText.setFillColor(i == paramIndex ? sf::Color(200, 160, 255) : sf::Color(200, 200, 200));
+            window.draw(paramText);
 
-        char buffer[32];
-        snprintf(buffer, sizeof(buffer), "%.2f", values[i]);
-        sf::Text valueText(m_font, buffer, 20);
-        valueText.setPosition({window.getSize().x - 200.f, 200.f + i * 35.f});
-        valueText.setFillColor(i == paramIndex ? sf::Color(100, 255, 100) : sf::Color::White);
-        window.draw(valueText);
+            char buffer[32];
+            snprintf(buffer, sizeof(buffer), "%.2f", values[i]);
+            sf::Text valueText(m_font, buffer, 20);
+            valueText.setPosition({window.getSize().x - 200.f, 200.f + i * 35.f});
+            valueText.setFillColor(i == paramIndex ? sf::Color(200, 160, 255) : sf::Color::White);
+            window.draw(valueText);
+        }
     }
 
     sf::Text help(m_font, "Up/Down - Body\nLeft/Right - Param\n+/- - Change\nE - Close", 16);

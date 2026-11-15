@@ -10,9 +10,10 @@ std::vector<Body> Scenarios::createFigureEight()
         body.radius = 0.1;
     }
 
-    bodies[0].r = 255; bodies[0].g = 90;  bodies[0].b = 90;  // Красный
-    bodies[1].r = 80;  bodies[1].g = 160; bodies[1].b = 255; // Синий
-    bodies[2].r = 255; bodies[2].g = 210; bodies[2].b = 70;  // Желтый
+    // Нежные цвета
+    bodies[0].r = 140; bodies[0].g = 200; bodies[0].b = 255; // Небесно-голубой
+    bodies[1].r = 255; bodies[1].g = 160; bodies[1].b = 122; // Терракотовый
+    bodies[2].r = 255; bodies[2].g = 240; bodies[2].b = 180; // Бледно-золотой
 
     bodies[0].position = {-0.97000436,  0.24308753};
     bodies[1].position = { 0.97000436, -0.24308753};
@@ -35,9 +36,9 @@ std::vector<Body> Scenarios::createChaotic()
         body.radius = 0.05;
     }
 
-    bodies[0].r = 255; bodies[0].g = 90;  bodies[0].b = 90;  // Красный
-    bodies[1].r = 80;  bodies[1].g = 160; bodies[1].b = 255; // Синий
-    bodies[2].r = 255; bodies[2].g = 210; bodies[2].b = 70;  // Желтый
+    bodies[0].r = 140; bodies[0].g = 200; bodies[0].b = 255;
+    bodies[1].r = 255; bodies[1].g = 160; bodies[1].b = 122;
+    bodies[2].r = 255; bodies[2].g = 240; bodies[2].b = 180;
 
     bodies[0].position = {-1.0, 0.0};
     bodies[1].position = {1.0, 0.0};
@@ -61,9 +62,9 @@ std::vector<Body> Scenarios::createHierarchical()
     for (Body& body : bodies)
         body.radius = 0.05;
 
-    bodies[0].r = 255; bodies[0].g = 90;  bodies[0].b = 90;  // Красный
-    bodies[1].r = 80;  bodies[1].g = 160; bodies[1].b = 255; // Синий
-    bodies[2].r = 255; bodies[2].g = 210; bodies[2].b = 70;  // Желтый
+    bodies[0].r = 140; bodies[0].g = 200; bodies[0].b = 255;
+    bodies[1].r = 255; bodies[1].g = 160; bodies[1].b = 122;
+    bodies[2].r = 255; bodies[2].g = 240; bodies[2].b = 180;
 
     bodies[0].position = {-0.5, 0.0};
     bodies[1].position = {0.5, 0.0};

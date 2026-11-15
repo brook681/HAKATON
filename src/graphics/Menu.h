@@ -43,7 +43,8 @@ public:
     void clearError() { m_errorMessage.clear(); }
 
     void drawHUD(sf::RenderWindow& window, double timeScale, double simTime, bool isPaused);
-    void drawEditPanel(sf::RenderWindow& window, int bodyIndex, int paramIndex, const Body& currentBody);
+    // Добавили totalBodies
+    void drawEditPanel(sf::RenderWindow& window, int bodyIndex, int paramIndex, const Body& currentBody, int totalBodies);
 
 private:
     MenuScreen m_currentScreen = MenuScreen::Main;
