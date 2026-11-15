@@ -4,7 +4,7 @@
 #include <cstdio>
 
 Menu::Menu() {
-    if (!m_font.openFromFile("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")) {
+    if (!m_font.openFromFile("assets/fonts/arial.ttf")) {
         std::cerr << "Warning: Could not load font for Menu!\n";
     } else {
         m_fontLoaded = true;
