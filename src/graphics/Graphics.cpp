@@ -11,6 +11,7 @@ static void drawBeautifulPlanet(sf::RenderWindow& window,
 {
     // 1. ТЕНЬ
     sf::CircleShape shadow(radius * 1.05f);
+    shadow.setPointCount(100);
     shadow.setOrigin({ radius * 1.05f, radius * 1.05f });
     float shadowOffset = radius * 0.3f;
     shadow.setPosition({ center.x + shadowOffset, center.y + shadowOffset });
@@ -22,6 +23,7 @@ static void drawBeautifulPlanet(sf::RenderWindow& window,
     {
         float glowRadius = radius * (1.0f + 0.25f * i);
         sf::CircleShape glow(glowRadius);
+        glow.setPointCount(100);
         glow.setOrigin({ glowRadius, glowRadius });
         glow.setPosition(center);
 
@@ -33,6 +35,7 @@ static void drawBeautifulPlanet(sf::RenderWindow& window,
 
     // 3. Сама планета (тёмная основа)
     sf::CircleShape planet(radius);
+    planet.setPointCount(100);
     planet.setOrigin({ radius, radius });
     planet.setPosition(center);
 
@@ -44,32 +47,27 @@ static void drawBeautifulPlanet(sf::RenderWindow& window,
     planet.setFillColor(dark);
     window.draw(planet);
 
-    // 4. АТМОСФЕРА (рисуем как второй круг, ровно по центру)
-    // Радиус чуть меньше планеты, чтобы он был внутри
-    float atmoRadius = radius * 0.85f;
+    // 4. АТМОСФЕРА
+    float atmoRadius = radius * 0.95f;
     sf::CircleShape atmosphere(atmoRadius);
-
-    // Ставим центр ровно туда же, куда и у планеты
+    atmosphere.setPointCount(100);
     atmosphere.setOrigin({ atmoRadius, atmoRadius });
-    atmosphere.setPosition(center); // Центр совпадает!
+    atmosphere.setPosition(center); 
 
-    // Цвет атмосферы - светлый, полупрозрачный
     sf::Color atmoColor = baseColor;
-    atmoColor.a = 120; // Прозрачность
+    atmoColor.a = 80;
     atmoColor.r = std::min(255, static_cast<int>(atmoColor.r + 60));
     atmoColor.g = std::min(255, static_cast<int>(atmoColor.g + 60));
     atmoColor.b = std::min(255, static_cast<int>(atmoColor.b + 60));
 
-    // Делаем её "кольцом", обрезая края (заливка прозрачная, но с толстым контуром)
-    atmosphere.setFillColor(sf::Color::Transparent);
-    atmosphere.setOutlineThickness(radius * 0.15f); // Толщина кольца
-    atmosphere.setOutlineColor(atmoColor);
-
+    atmosphere.setFillColor(atmoColor);
+    atmosphere.setOutlineThickness(0);
     window.draw(atmosphere);
 
     // 5. Блик
     float highlightRadius = radius * 0.8f;
     sf::CircleShape highlight(highlightRadius);
+    highlight.setPointCount(100);
     highlight.setOrigin({ highlightRadius, highlightRadius });
     highlight.setPosition({ center.x - radius * 0.2f, center.y - radius * 0.2f });
 
@@ -147,6 +145,7 @@ void Graphics::draw(
         {
             float alpha = 30.f + 180.f * index / trails[i].size();
             sf::CircleShape dot(2.f);
+            dot.setPointCount(20);
             dot.setOrigin({ 2.f, 2.f });
             dot.setPosition(point);
             dot.setFillColor(sf::Color(
@@ -168,6 +167,7 @@ void Graphics::draw(
 
             // 1. Огромное мягкое свечение
             sf::CircleShape bigGlow(screenRadius * 15.0f);
+            bigGlow.setPointCount(100);
             bigGlow.setOrigin({ screenRadius * 15.0f, screenRadius * 15.0f });
             bigGlow.setPosition({ x, y });
             bigGlow.setFillColor(sf::Color(color.r, color.g, color.b, 40));
@@ -175,6 +175,7 @@ void Graphics::draw(
 
             // 2. Средний ореол
             sf::CircleShape midGlow(screenRadius * 6.0f);
+            midGlow.setPointCount(100);
             midGlow.setOrigin({ screenRadius * 6.0f, screenRadius * 6.0f });
             midGlow.setPosition({ x, y });
             midGlow.setFillColor(sf::Color(color.r, color.g, color.b, 100));
@@ -182,6 +183,7 @@ void Graphics::draw(
 
             // 3. Яркое белое ядро
             sf::CircleShape core(screenRadius * 2.0f);
+            core.setPointCount(100);
             core.setOrigin({ screenRadius * 2.0f, screenRadius * 2.0f });
             core.setPosition({ x, y });
             core.setFillColor(sf::Color(255, 255, 255, 230));

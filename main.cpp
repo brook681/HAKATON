@@ -78,6 +78,11 @@ int main()
                             currentConfig.initialBodies[i].velocity.x = std::stod(data[i * 5 + 3]);
                             currentConfig.initialBodies[i].velocity.y = std::stod(data[i * 5 + 4]);
                             currentConfig.initialBodies[i].radius = 0.05;
+                            
+                            // Добавляем цвета для кастомных тел
+                            if (i == 0) { currentConfig.initialBodies[i].r = 255; currentConfig.initialBodies[i].g = 90; currentConfig.initialBodies[i].b = 90; }
+                            if (i == 1) { currentConfig.initialBodies[i].r = 80; currentConfig.initialBodies[i].g = 160; currentConfig.initialBodies[i].b = 255; }
+                            if (i == 2) { currentConfig.initialBodies[i].r = 255; currentConfig.initialBodies[i].g = 210; currentConfig.initialBodies[i].b = 70; }
                         }
                         
                         Simulation simulation(currentConfig); 
@@ -170,21 +175,7 @@ int main()
                 if (!isEditing) simulation.update(dt);
                 
                 window.clear(sf::Color(8, 10, 22));
-                sf::VertexArray background(sf::PrimitiveType::TriangleFan, 4);
-                background[0].position = { 0.f, 0.f };
-                background[0].color = sf::Color(5, 5, 15);   // Верхний левый (почти черный)
-
-                background[1].position = { static_cast<float>(window.getSize().x), 0.f };
-                background[1].color = sf::Color(5, 5, 15);   // Верхний правый
-
-                background[2].position = { static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y) };
-                background[2].color = sf::Color(25, 30, 60); // Нижний правый (синий)
-
-                background[3].position = { 0.f, static_cast<float>(window.getSize().y) };
-                background[3].color = sf::Color(25, 30, 60); // Нижний левый
                 graphics.draw(window, simulation.snapshot());
-
-                window.draw(background);
                 
                 menu.drawHUD(window, simulation.getTimeScale(), simulation.getSimulationTime(), !simulation.isRunning());
                 

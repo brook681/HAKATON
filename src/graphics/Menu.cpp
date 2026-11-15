@@ -92,14 +92,33 @@ void Menu::moveFocus(int dx, int dy) {
 void Menu::drawCustomInputForm(sf::RenderWindow& window) {
     if (!m_fontLoaded) return;
 
+    float tableWidth = 5 * 170.f;
+    float tableHeight = 3 * 80.f;
+    
+    float startX = (window.getSize().x - tableWidth) / 2.f + 40.f;
+    float startY = (window.getSize().y - tableHeight) / 2.f - 50.f;
+
     sf::Text title(m_font, "Enter parameters for 3 bodies", 28);
-    title.setPosition({50, 30});
+    sf::FloatRect titleBounds = title.getLocalBounds();
+    title.setOrigin({titleBounds.position.x + titleBounds.size.x / 2.f, titleBounds.position.y + titleBounds.size.y / 2.f});
+    title.setPosition({window.getSize().x / 2.f, startY - 120.f});
     window.draw(title);
 
     sf::Text hint(m_font, "Arrows - move, Backspace - delete, Esc - cancel", 18);
+    sf::FloatRect hintBounds = hint.getLocalBounds();
+    hint.setOrigin({hintBounds.position.x + hintBounds.size.x / 2.f, hintBounds.position.y + hintBounds.size.y / 2.f});
     hint.setFillColor(sf::Color(180, 180, 180));
-    hint.setPosition({50, 70});
+    hint.setPosition({window.getSize().x / 2.f, startY - 90.f});
     window.draw(hint);
+
+    // Подписи для столбцов (параметров)
+    const char* paramNames[] = {"Mass", "Pos X", "Pos Y", "Vel X", "Vel Y"};
+    for (int p = 0; p < 5; ++p) {
+        sf::Text colLabel(m_font, paramNames[p], 18);
+        colLabel.setFillColor(sf::Color(100, 200, 255));
+        colLabel.setPosition({startX + p * 170.f, startY - 30.f});
+        window.draw(colLabel);
+    }
 
     sf::Vector2f mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
 
@@ -107,8 +126,15 @@ void Menu::drawCustomInputForm(sf::RenderWindow& window) {
         int bodyIndex = i / 5;
         int paramIndex = i % 5;
 
-        float x = 50.f + paramIndex * 170.f;
-        float y = 140.f + bodyIndex * 80.f;
+        float x = startX + paramIndex * 170.f;
+        float y = startY + bodyIndex * 80.f;
+
+        if (paramIndex == 0) {
+            sf::Text bodyLabel(m_font, "Body " + std::to_string(bodyIndex + 1), 20);
+            bodyLabel.setPosition({x - 80.f, y + 8.f});
+            bodyLabel.setFillColor(sf::Color(200, 200, 200));
+            window.draw(bodyLabel);
+        }
 
         sf::RectangleShape field({160.f, 40.f});
         field.setPosition({x, y});
@@ -125,18 +151,24 @@ void Menu::drawCustomInputForm(sf::RenderWindow& window) {
         sf::Text value(m_font, m_customInputs[i], 20);
         value.setPosition({x + 10.f, y + 8.f});
         window.draw(value);
-        
-        if (paramIndex == 0) {
-            sf::Text bodyLabel(m_font, "Body " + std::to_string(bodyIndex + 1), 20);
-            bodyLabel.setPosition({x, y - 30.f});
-            window.draw(bodyLabel);
-        }
     }
 
+    // Подсказки по значениям (внизу, под таблицей)
+    sf::Text tips(m_font, 
+        "Tips: Mass ~ 1.0 (avoid 0 or huge numbers)\n"
+        "Pos X/Y: -3.0 to 3.0 (to stay on screen)\n"
+        "Vel X/Y: -1.0 to 1.0 (0 means no movement)", 16);
+    tips.setFillColor(sf::Color(150, 150, 150));
+    tips.setPosition({startX - 40.f, startY + 260.f});
+    window.draw(tips);
+
+    // Отрисовка ошибки
     if (!m_errorMessage.empty()) {
         sf::Text errorText(m_font, m_errorMessage, 20);
+        sf::FloatRect errBounds = errorText.getLocalBounds();
+        errorText.setOrigin({errBounds.position.x + errBounds.size.x / 2.f, errBounds.position.y + errBounds.size.y / 2.f});
         errorText.setFillColor(sf::Color(255, 100, 100));
-        errorText.setPosition({50.f, 530.f});
+        errorText.setPosition({window.getSize().x / 2.f, startY + 340.f});
         window.draw(errorText);
     }
 }
