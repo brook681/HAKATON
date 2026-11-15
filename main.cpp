@@ -2,7 +2,7 @@
 #include <SFML/Graphics.hpp>
 #include <algorithm>
 #include <iostream>
-#include <limits> // Добавили для очистки потока ввода
+#include <limits>
 
 #include "src/physics/Scenarios.h"
 #include "src/simulation/Simulation.h"
@@ -25,29 +25,24 @@ int loadConfig(SimulationConfig& config)
     if (!(std::cin >> choice))
     {
         std::cerr << "Invalid input.\n";
-        std::cin.clear(); // Сбрасываем флаг ошибки
-        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Очищаем буфер
-        return 1; // Возвращаемся в меню
+        std::cin.clear();
+        std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
+        return 1;
     }
 
-    if (choice == 0) {
-        return -1; // Выход из игры
-    }
+    if (choice == 0) return -1;
 
     switch (choice)
     {
     case 1:
         config.initialBodies = Scenarios::createFigureEight();
         break;
-
     case 2:
         config.initialBodies = Scenarios::createChaotic();
         break;
-
     case 3:
         config.initialBodies = Scenarios::createHierarchical();
         break;
-
     case 4:
         std::cout << "\nEnter parameters for 3 bodies:\n";
         std::cout << "Format: mass posX posY velX velY\n";
@@ -57,7 +52,6 @@ int loadConfig(SimulationConfig& config)
         for (int i = 0; i < 3; ++i)
         {
             std::cout << "Body " << i + 1 << ": ";
-
             double mass, px, py, vx, vy;
 
             if (!(std::cin >> mass >> px >> py >> vx >> vy))
@@ -65,15 +59,15 @@ int loadConfig(SimulationConfig& config)
                 std::cerr << "\nInvalid parameters (non-numeric input).\n";
                 std::cin.clear();
                 std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
-                return 1; // Ошибка ввода
+                return 1;
             }
 
             if (!std::isfinite(mass) || mass <= 0.0 ||
                 !std::isfinite(px) || !std::isfinite(py) ||
                 !std::isfinite(vx) || !std::isfinite(vy))
             {
-                std::cerr << "\nInvalid parameters (mass must be > 0, others finite).\n";
-                return 1; // Ошибка ввода
+                std::cerr << "\nInvalid parameters (mass must be > 0).\n";
+                return 1;
             }
 
             config.initialBodies[i].mass = mass;
@@ -82,13 +76,12 @@ int loadConfig(SimulationConfig& config)
             config.initialBodies[i].radius = 0.05;
         }
         break;
-
     default:
         std::cerr << "Invalid choice. Try again.\n";
-        return 1; // Неверный номер пункта
+        return 1;
     }
 
-    return 0; // Успех
+    return 0;
 }
 
 int main()
@@ -97,17 +90,10 @@ int main()
     {
         SimulationConfig config;
         
-        // Запускаем загрузку конфига
         int loadResult = loadConfig(config);
-        
-        if (loadResult == -1) {
-            break; // Выходим из главного цикла
-        }
-        if (loadResult == 1) {
-            continue; // Возвращаемся в начало цикла (показываем меню заново)
-        }
+        if (loadResult == -1) break;
+        if (loadResult == 1) continue;
 
-        // Если loadResult == 0, значит всё успешно
         Simulation simulation(config);
         Graphics graphics;
 
@@ -128,31 +114,23 @@ int main()
             {
                 if (event->is<sf::Event::Closed>()) {
                     window.close();
-                    return 0; // Полный выход из программы
+                    return 0;
                 }
 
                 if (const auto* key = event->getIf<sf::Event::KeyPressed>())
                 {
-                    if (key->code == sf::Keyboard::Key::Space)
-                    {
-                        if (simulation.isRunning())
-                            simulation.pause();
-                        else if (simulation.getState() == SimulationState::Paused)
-                            simulation.start();
+                    if (key->code == sf::Keyboard::Key::Space) {
+                        if (simulation.isRunning()) simulation.pause();
+                        else if (simulation.getState() == SimulationState::Paused) simulation.start();
                     }
-
-                    if (key->code == sf::Keyboard::Key::R)
-                    {
+                    if (key->code == sf::Keyboard::Key::R) {
                         simulation.reset();
                         graphics.resetTrails();
                     }
-
-                    // Esc возвращает в меню
                     if (key->code == sf::Keyboard::Key::Escape) {
                         returnToMenu = true;
                         break;
                     }
-
                     if (key->code == sf::Keyboard::Key::Num1) simulation.setTimeScale(0.25);
                     if (key->code == sf::Keyboard::Key::Num2) simulation.setTimeScale(0.5);
                     if (key->code == sf::Keyboard::Key::Num3) simulation.setTimeScale(1.0);
@@ -171,6 +149,24 @@ int main()
             window.clear(sf::Color(8, 10, 22));
             graphics.draw(window, simulation.snapshot());
             window.display();
+
+            // --- ПРОВЕРКА НА ВЫЛЕТ ТЕЛ ЗА ГРАНИЦЫ ---
+            auto bodies = simulation.snapshot();
+            const double ESCAPE_RADIUS = 10.0;
+            
+            bool allEscaped = true;
+            for (const auto& body : bodies) {
+                if (body.position.length() <= ESCAPE_RADIUS) {
+                    allEscaped = false;
+                    break;
+                }
+            }
+
+            if (allEscaped) {
+                std::cout << "\n[!] All bodies have escaped the simulation area (distance > " 
+                          << ESCAPE_RADIUS << " m).\n";
+                returnToMenu = true;
+            }
 
             // Если симуляция завершилась (коллизия)
             if (simulation.getState() == SimulationState::Finished) {
