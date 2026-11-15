@@ -1,4 +1,3 @@
-
 #pragma once
 
 #include "SimulationConfig.h"
@@ -45,6 +44,8 @@ public:
     bool setBodyVelocity(BodyId id, const Vector2D& velocity);
     bool setBodyMass(BodyId id, double mass);
     bool setBodyRadius(BodyId id, double radius);
+    
+    double getTimeScale() const;
 
 private:
     SimulationConfig m_config;

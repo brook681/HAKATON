@@ -1,4 +1,3 @@
-
 #include "Simulation.h"
 
 #include <algorithm>
@@ -202,4 +201,8 @@ bool Simulation::setBodyRadius(BodyId id, double radius)
 std::vector<Body> Simulation::snapshot() const
 {
     return m_bodies;
+}
+
+double Simulation::getTimeScale() const {
+    return m_timeScale;
 }

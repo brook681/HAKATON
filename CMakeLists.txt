@@ -34,7 +34,9 @@ target_link_libraries(simulation PUBLIC physics)
 # Graphics library
 add_library(graphics
     src/graphics/Graphics.cpp
-    src/graphics/CoordinateSystem.h  # <--- ДОБАВИЛИ СЮДА
+    src/graphics/Menu.cpp
+    src/graphics/CoordinateSystem.h
+    src/graphics/Menu.h
 )
 
 target_include_directories(graphics PUBLIC
