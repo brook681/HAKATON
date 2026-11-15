@@ -47,4 +47,8 @@ struct Body
     Vector2D acceleration;
 
     double radius = 0.1;
+
+    unsigned char r = 255;
+    unsigned char g = 255;
+    unsigned char b = 255;
 };
